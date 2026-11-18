@@ -79,8 +79,9 @@ gitleaks detect --source <仓库副本> --no-git --redact --verbose
 - 文档与示例只使用 `OWNER/REPO`、`<token>`、`…` 等占位符。
 - 测试使用合成音频、假 `lark-cli`、假 ffmpeg 与本地 SSE 服务。
 
-当前目录还不是 git 仓库，因此无法执行 `git ls-files` 检查。初始化仓库后应重新
-执行 gitleaks 与 `git ls-files`，确认没有被忽略规则遗漏的文件。
+初始化仓库后执行 `git ls-files`：共 85 个受控文件，未包含 `.env`、
+`config.toml`、`work/`、`archive/`、`minutes/`、`output/` 或状态备份。
+gitleaks 对初始提交执行历史扫描，结果为 `no leaks found`。
 
 ## 4. 测试与覆盖率
 
@@ -122,4 +123,4 @@ CI 已配置 Ubuntu 与 macOS、Python 3.10–3.13 矩阵，以及示例插件�
 - [x] 离线验收项执行并记录
 - [ ] 真实妙记端到端联调（需要授权环境）
 - [ ] 远程 CI 首次运行
-- [ ] `git init`、初始提交与 `v0.1.0` 标签（需要仓库所有者确认）
+- [x] `git init`、初始提交与本地 `v0.1.0` 标签（未添加远端、未推送）
