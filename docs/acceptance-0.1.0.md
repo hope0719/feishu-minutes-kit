@@ -13,7 +13,7 @@
 
 | # | 验收标准 | 结果 | 证据 |
 |---|---|---|---|
-| 1 | 全新机器按 README 三步安装配置，跑通一条妙记 | 安装与真实 `discover` 通过；完整 ASR 待凭证 | 全新 venv 安装、`init`、`doctor`；真实 `discover` 返回 3 条 |
+| 1 | 全新机器按 README 三步安装配置，跑通一条妙记 | 安装、真实 discover 与 preflight 通过；完整 ASR 待凭证 | 3 条录音全部下载并通过音频判定 |
 | 2 | `fmk doctor` 拦住缺失依赖、凭证与目录权限 | 通过 | 无凭证时 `[fail] credential`，退出码 2 |
 | 3 | 无真实凭证、个人信息或录音内容 | 通过（本地 + CI） | gitleaks v8.21.2：`no leaks found` |
 | 4 | 测试矩阵全绿，覆盖率 ≥ 80% | 通过（本地 + 远程 CI） | 96 项通过，覆盖率 85.84%；CI 10 个任务全绿 |
@@ -40,6 +40,10 @@ fmk doctor
 真实数据源验证：在临时工作区使用已授权的 `lark-cli`，对最近 2 天执行
 `fmk discover --json`，成功返回 **3 条**新录音。验收只记录数量，不输出标题、
 token 或任何录音内容。
+
+进一步执行 `fmk run --only preflight`：3 条录音全部下载并通过音频判定，状态为
+`downloaded: 3`，没有 `silent`、`duplicate` 或 `no-audio`。临时工作区与音频在
+验证后已删除。
 
 **完整 ASR 转写未执行**：验收环境未设置 `FMK_STEPFUN_API_KEY`。仓库内的端到端
 路径由离线集成测试覆盖：
@@ -132,6 +136,7 @@ coverage                                 85.84%（门槛 80%）
 - [x] CHANGELOG 覆盖九步、Provider、插件 API、CLI、文档、CI 与安全
 - [x] 离线验收项执行并记录
 - [x] 真实 `lark-cli` discover（最近 2 天，3 条）
+- [x] 真实下载与 preflight（3 条，无静音/重复/缺音频）
 - [ ] 完整 ASR 转写（需要 `FMK_STEPFUN_API_KEY`）
 - [x] 远程 CI 首次运行（10 个任务全部成功）
 - [x] `git init`、初始提交、公开仓库与 `v0.1.0` 标签
