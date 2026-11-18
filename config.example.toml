@@ -1,0 +1,49 @@
+# Copy this file to config.toml and adjust the paths for your machine.
+# config.toml is ignored by git on purpose.
+
+[workspace]
+work_dir = "./work"
+minutes_dir = "./work/minutes"
+state_dir = "./work/state"
+archive_dir = "./archive"
+
+[naming]
+# {index} is re-assigned on every organize run: 01 is the newest.
+dir_format = "{index:02d}-{year}-{month:02d}"
+file_format = "{index:02d}-{date} · {title}.md"
+max_title_chars = 80
+
+[preflight]
+# Recordings quieter than this are treated as silent and skipped.
+silent_db = -50.0
+# Compositions shorter than this are treated as empty.
+min_words = 20
+
+[transcribe]
+segment_seconds = 1500
+request_seconds = 120
+concurrency = 3
+max_retries = 3
+
+[source]
+provider = "lark-cli"
+
+[asr]
+provider = "stepfun"
+model = "stepaudio-2.5-asr"
+
+[index]
+enabled = false
+
+[publish]
+enabled = false
+provider = "git"
+remote = ""
+branch = "main"
+commit_message = "chore: sync minutes archive"
+
+[pipeline]
+steps = [
+  "discover", "download", "preflight", "transcribe", "compose",
+  "organize", "reconcile", "index", "publish",
+]

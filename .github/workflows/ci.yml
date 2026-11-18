@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - name: Install
+        run: uv sync --extra dev --python ${{ matrix.python }}
+      - name: Lint
+        run: uv run ruff check .
+      - name: Format
+        run: uv run ruff format --check src tests examples
+      - name: Type check
+        run: uv run mypy src
+      - name: Test
+        run: uv run pytest --cov=fmk --cov-report=term-missing --cov-fail-under=80
+
+  example-plugin:
+    name: example plugin entry point
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra dev
+      - name: Install the example plugin without re-resolving the core package
+        run: uv pip install --no-deps -e examples/plugin-example
+      - name: The registry must discover the third-party step
+        run: uv run fmk plugins list | tee plugin-list.txt
+      - run: grep -q wordcount plugin-list.txt
+
+  secrets:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

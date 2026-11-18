@@ -1,0 +1,28 @@
+# Local configuration and credentials
+.env
+config.toml
+
+# Generated data
+work/
+archive/
+minutes/
+output/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/

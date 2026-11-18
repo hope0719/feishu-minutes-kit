@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""Minimal fake of ``lark-cli minutes`` used by the test suite.
+
+Behaviour is driven by JSON files inside ``$FAKE_LARK_DIR``:
+
+- ``search_pages.json``: list of page objects, each with ``items``,
+  ``has_more``, ``page_token`` and optional ``error`` / ``exit_code``.
+- ``meta.json``: mapping token -> minute object.
+- ``download.json``: mapping token -> filename (or null to simulate no audio).
+- ``calls.jsonl``: appended with every invocation's argv.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def _value(args: list[str], flag: str, default: str = "") -> str:
+    if flag in args:
+        index = args.index(flag)
+        if index + 1 < len(args):
+            return args[index + 1]
+    return default
+
+
+def _load(base: Path, name: str):
+    path = base / name
+    if not path.is_file():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _emit(payload: object) -> int:
+    print(json.dumps(payload, ensure_ascii=False))
+    return 0
+
+
+def search(base: Path, args: list[str]) -> int:
+    pages = _load(base, "search_pages.json") or []
+    page_index = int(_value(args, "--page-token", "0") or "0")
+    if page_index >= len(pages):
+        return _emit({"ok": True, "data": {"items": [], "has_more": False, "page_token": ""}})
+    page = pages[page_index]
+    if page.get("error"):
+        return _emit({"ok": False, "error": page["error"]})
+    return _emit(
+        {
+            "ok": True,
+            "data": {
+                "items": page.get("items") or [],
+                "has_more": bool(page.get("has_more")),
+                "page_token": page.get("page_token") or "",
+            },
+        }
+    )
+
+
+def meta(base: Path, args: list[str]) -> int:
+    token = _value(args, "--minute-token")
+    entries = _load(base, "meta.json") or {}
+    minute = entries.get(token)
+    if minute is None:
+        return _emit({"ok": False, "error": f"minute not found: {token}"})
+    return _emit({"ok": True, "data": {"minute": minute}})
+
+
+def download(base: Path, args: list[str]) -> int:
+    tokens = [part for part in _value(args, "--minute-tokens").split(",") if part]
+    output_dir = Path(_value(args, "--output-dir", "."))
+    manifest = _load(base, "download.json") or {}
+    files: list[str] = []
+    for token in tokens:
+        filename = manifest.get(token)
+        if not filename:
+            continue
+        output_dir.mkdir(parents=True, exist_ok=True)
+        target = output_dir / filename
+        target.write_bytes(b"fake-audio-bytes")
+        files.append(str(target))
+    return _emit({"ok": True, "data": {"files": files}})
+
+
+def main(argv: list[str]) -> int:
+    base = Path(os.environ["FAKE_LARK_DIR"])
+    with (base / "calls.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(argv, ensure_ascii=False) + "\n")
+
+    args = argv[1:]
+    if "+search" in args:
+        return search(base, args)
+    if "+download" in args:
+        return download(base, args)
+    if "get" in args:
+        return meta(base, args)
+    return _emit({"ok": False, "error": "unsupported command"})
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
